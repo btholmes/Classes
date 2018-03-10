@@ -1,9 +1,0 @@
-This assignment has been done with the term mentioned for extra-credit i.e.
-The multithreading has been used.
-There are two directories, one for the client and one for the server.
-- Firstly, open the Server directory and run the following commands:
-	$ make
-	$ ./main
-- Secondly, open the Client directory and run the following commands:
-	$ make
-	$ ./main
