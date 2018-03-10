@@ -1,0 +1,9 @@
+Sept 28 : Read pdf and try to understand what to do.
+
+OCt 02:	Write some functions to like main and history and try to integrate
+
+Oct 08:  Wrote all functions like processCommand, viewHistory and main and try to compile but segmentation fault error really stock me.
+
+Oct 12: Fixed seg fault but not work as supposed be. Done some research and fix some Error.
+
+Oct 17: make changes in make file and wrote read me and solve all problems. 

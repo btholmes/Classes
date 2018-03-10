@@ -1,0 +1,85 @@
+COMS 352 
+Assignment 6
+Ben Holmes 
+
+7.12 Assume a multithreaded application uses only reader–writer locks for synchronization.
+Applying the four necessary conditions for deadlock, is deadlock still possible if multiple reader–
+writer locks are used?
+
+	Yes, the four conditions for deadlock are mutual exclusion, hold-and-wait, preemption, and a circular wait among threads must be possible. 
+	Mutual exclusion is maintained through reader-writer locks, hold-and-wait exists because a thread can only hold one reader-writer lock at a time, 
+	you cannot take a lock away, so preemption is maintained, and a circular wait among all threads is possible. 
+
+
+7.17 Consider a system consisting of four resources of the same type that are shared by three
+processes, each of which needs at most two resources. Show that the system is deadlock free.
+
+	Since there are four resources, and only three processes, that means there will never be a condition in which all the resources are held in a deadlock. Consider that 
+	the system is in a deadlock, that means all three process are holding at least one resource, and waiting for another to release the lock. Say one process has 1 resource, 
+	and receives another resource. When this happens, the process will have 2 resources, and will therefore return resources when it is done. 
+
+
+7.23 Consider the following snapshot of a system:
+Answer the following questions using the banker’s algorithm:
+a. Illustrate that the system is in a safe state by demonstrating an order in which the processes may
+complete.
+b. If a request from process P1 arrives for (1, 1, 0, 0), can the request be granted immediately?
+c. If a request from process P4 arrives for (0, 0, 2, 0), can the request be granted immediately?
+
+
+	a.) P3 has minimum need of 112, so it executes first. Then P2, P4, P1, P0. 
+	b.) Not granted since available is less than need.
+	c.) Not granted since available is less than need.
+
+
+
+
+7.24 What is the optimistic assumption made in the deadlock-detection algorithm? How can this
+assumption be violated?
+
+	The assumpption is that no further requests will be made by any task, other than what has already been done. This would be violated if another request is made, 
+	and would result in a deadlock. 
+
+
+
+7.25 A single-lane bridge connects the two Vermont villages of North Tunbridge and South Tunbridge.
+Farmers in the two villages use this bridge to deliver their produce to the neighboring town. The
+bridge can become deadlocked if a northbound and a southbound farmer get on the bridge at the same
+time. (Vermont farmers are stubborn and are unable to back up.) Using monitor, design an algorithm
+in pseudocode that prevents deadlock. Design your algorithm in a way that it is starvation free.
+
+
+	if northbound
+		if southbound on bridge or waiting
+			increment northwaiting 
+			wait(northbound)
+			while(southbound on bridge)
+				wait(northbound)
+				decrement northwaiting
+		increment northbound on bridge
+		if nobody is southwaiting
+			signal(northbound)
+			decrement north on bridge
+		if nobody northbound on bridge
+			signal (southbound)
+	if southbound
+		//For northbound
+		if northbound on bridge or waiting 
+			increment southwaiting
+			wait(southbound)
+			while north on bridge
+				wait(southbound)
+				decrement southwaiting
+			increment southbound on bridge
+			if nobody waiting northbound
+				signal(southbound)
+			decrement south on bridge
+			if no southbound on bridge
+				signal(northbound)
+
+
+
+
+
+
+
