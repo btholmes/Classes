@@ -7,8 +7,14 @@ client: httpClient.c
 server: httpServer.c
 	$(CC) -w httpServer.c -o server
 
+clean: 
+	rm -f client server
+
 run_server:
 	./server 8765
+
+
+
 
 run_client_1:
 	./client https://www.w3.org/TR/html4/index/list.html -h -d 1:2:15 
@@ -21,6 +27,9 @@ run_client_3:
 
 run_client_4: 
 	./client https://www.w3.org:80/TR/html4/index/list.html -h -d 1:2:15
+
+run_client_5: 
+	./client https://www.w3.org:80/TR/html4/index/list.html
 
 
 
@@ -38,8 +47,7 @@ run_local_4:
 	./client localhost:8765/var/www/html/index.html -d 20:0:0
 
 run_local_5:
-	./client localhost:8765/var/www/html/not_here.html 
+	./client localhost:8765/var/www/html/random.html 
 
-
-clean: 
-	rm -f client server
+run_local_6: 
+	./client localhost:8765/var/www/html/notHere.html 

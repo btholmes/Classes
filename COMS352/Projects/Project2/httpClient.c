@@ -60,7 +60,7 @@ char** splitLine(char *line, int *count, char splitBy){
 
 }
 
-
+//Not being used anymore
 char* getLine(void){
   int bufsize = 1024;
   int position = 0;
@@ -94,6 +94,7 @@ char* getLine(void){
   }
 }
 
+//Not being used anymore
 char* getResource(char** domainPortResource){
     int position = 2;   
     char* result; 
@@ -250,10 +251,16 @@ void writeToFile(char buf[]){
 void connectToServer(char* hostName, int port, struct sockaddr_in server_addr, int* sock, char* resource){
   // server.sin_addr.s_addr = inet_addr("127.0.0.1");
 
+
     char buf[2056]; 
     int byte_count; 
     struct hostent *server; 
+
+  //This is where it's failing
+
     server = gethostbyname(hostName); 
+
+
 
     bcopy((char *)server->h_addr, (char *)&server_addr.sin_addr.s_addr, server->h_length);
     server_addr.sin_family = AF_INET;
@@ -266,7 +273,7 @@ void connectToServer(char* hostName, int port, struct sockaddr_in server_addr, i
         return; 
     }
 
-    // printf("RESOURCE IN SERVER IS : %s\n\n", resource); 
+    printf("RESOURCE IN SERVER IS : %s\n\n", resource); 
 
     char *header = getHeader(hostName, resource); 
     // printf("Header is %s\n" , header); 
@@ -384,6 +391,7 @@ int main(int argc, char *argv[]){
 
   char* resource = getResourceFromURL(urlCopy, position); 
   char copy[1000]; 
+  memset(copy, 0, 1000); 
   strcpy(copy, resource); 
 
 
