@@ -256,7 +256,7 @@ void connectToServer(char* hostName, int port, struct sockaddr_in server_addr, i
     int byte_count; 
     struct hostent *server; 
 
-  //This is where it's failing
+    //This is where it's failing
 
     server = gethostbyname(hostName); 
 
