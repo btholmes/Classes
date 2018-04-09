@@ -84,6 +84,8 @@ char* getFile(char* file){
         }
         fclose(fp);
     }
+
+    // printf("Body in getFile : %s\n", source); 
     return source; 
 }
 
@@ -104,6 +106,8 @@ void createSocket(int* sockfd){
        error("ERROR opening socket");
 }
 
+
+// This function is not being used 
 char* getStatus(char* file){
     char* result; 
     char* okStatus = "\r\n\r\nHTTP/1.1 200 OK\r\n\r\n"; 
@@ -142,7 +146,6 @@ void getDirectory(char* splitDirectories, char* result){
     result[length] = '\0'; 
     free(tokens); 
 
-    // printf("File in getDirectory is : %s\n\n", result); 
 }
 
 void getHFlag(char** tokens, int* hFlag){
@@ -213,7 +216,7 @@ time_t makeTime(char* tArg){
 }
 
 void getTFlag(char** tokens, int* tFlag, char* tArg, time_t* modifiedSince){
-//     HEAD /var/www/html/index.html HTTP/1.1
+// HEAD /var/www/html/index.html HTTP/1.1
 // Host: localhost
 // If-Modified-Since: Sun Apr  8 04:35:24 2018
 
@@ -245,8 +248,8 @@ void getTFlag(char** tokens, int* tFlag, char* tArg, time_t* modifiedSince){
 
 }
 
-char* getResponse(int *newsockfd, int* header, char* buffer){
-    char* response; 
+char* getResponse(int *newsockfd, int* header, char* buffer, char* response){
+    memset(response, 0, 10000); 
     char* status; 
 
     int count = 0; 
@@ -254,7 +257,6 @@ char* getResponse(int *newsockfd, int* header, char* buffer){
 
     char file[1000]; 
     getDirectory(tokens[1], file); 
-    // char* file = "var/www/html/index.html"; 
 
     int hFlag = 0; 
     getHFlag(tokens, &hFlag); 
@@ -263,12 +265,9 @@ char* getResponse(int *newsockfd, int* header, char* buffer){
     char tArg[1000]; 
     time_t modifiedSince; 
     getTFlag(tokens, &tFlag, tArg, &modifiedSince); 
-    // printf("\nmodifiedSince at end is : %s \n\n", ctime(&modifiedSince)); 
 
 
     free(tokens); 
-
-    // printf("FILE IS %s \n\n\n", file); 
 
     if( access( file, R_OK ) != -1 ) {
 
@@ -278,48 +277,38 @@ char* getResponse(int *newsockfd, int* header, char* buffer){
             //  printf("Param time: %s \n\n", ctime(&modifiedSince));
             if(modifiedSince <= createdOn){
                 status = "\r\n\r\nHTTP/1.1 200 OK\r\n\r\n"; 
-                response = malloc(sizeof(char*) * strlen(status));
                 strcat(response, status); 
                 // printf("Modified on %s \n, Last modified param %s\n", ctime(&createdOn), ctime(&modifiedSince)); 
                 char* body = getFile(file);
-                response = realloc(response, sizeof(char)*strlen(body)+5); 
                 strcat(response, body); 
+                strcat(response, "\r\n\r\n"); 
 
-                strcat(response, "\r\n\r\n\0"); 
-                // response[strlen(response)] = '\0'; 
-
+                // printf("Response in getResponse %s\n", response); 
                 free(body); 
                 return response; 
             }else{
                 status = "\r\n\r\nHTTP/1.1 304 Not Modified\r\n\r\n"; 
-                response = malloc(sizeof(char*) * strlen(status));
                 strcat(response, status); 
-
                 return response; 
 
             }
 
         }else if(!tFlag && hFlag){
             status = "\r\n\r\nHTTP/1.1 200 OK\r\n\r\n";
-            response = malloc(sizeof(char*) * strlen(status));
             strcat(response, status); 
             
             return response; 
 
         }else if(tFlag && hFlag){
             time_t createdOn =  getFileCreationTime(file);
-            // printf("Last modified time: %s \n", ctime(&createdOn));
-            // printf("Param time: %s \n\n", ctime(&modifiedSince));
             if(modifiedSince <= createdOn){
                 status = "\r\n\r\nHTTP/1.1 200 OK\r\n\r\n"; 
-                response = malloc(sizeof(char*) * strlen(status));
                 strcat(response, status); 
 
                 return response; 
 
             }else{
                 status = "\r\n\r\nHTTP/1.1 304 Not Modified\r\n\r\n"; 
-                response = malloc(sizeof(char*) * strlen(status));
                 strcat(response, status); 
 
                 return response; 
@@ -327,27 +316,20 @@ char* getResponse(int *newsockfd, int* header, char* buffer){
 
         }else{
             status = "\r\n\r\nHTTP/1.1 200 OK\r\n\r\n";
-            response = malloc(sizeof(char*) * strlen(status));
             strcat(response, status); 
 
             char* body = getFile(file);
-            response = realloc(response, sizeof(char)*strlen(body)+5); 
             strcat(response, body); 
-
-            strcat(response, "\r\n\r\n\0"); 
-            // response[strlen(response)] = '\0'; 
+            strcat(response, "\r\n\r\n"); 
 
             free(body); 
-            
             return response; 
         }
 
 
     } else {
         status = "\r\n\r\nHTTP/1.1 404 Not Found\r\n\r\n";  
-        response = malloc(sizeof(char*) * strlen(status));
         strcat(response, status); 
-        // strcat(response, "\r\n\r\n\0"); 
         return response; 
     }
 
@@ -392,13 +374,13 @@ int main(int argc, char *argv[])
             printf("\n\nRequest is : \n%s\r\n\r\n",buffer);
 
 
-            char* response = getResponse(&newsockfd, &header, buffer); 
+            char response[10000]; 
+            getResponse(&newsockfd, &header, buffer, response);  
+
             int writeMe = write(newsockfd, response, strlen(response)); 
 
             if(writeMe < 0) error("ERROR writing response to client"); 
 
-
-            free(response); 
         }
 
         sleep(1); 

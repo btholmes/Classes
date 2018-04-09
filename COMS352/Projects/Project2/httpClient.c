@@ -157,9 +157,11 @@ char* getTArg(char** args, int* tFlag, int argc){
           result = args[4]; 
       }
   }
+
   return result; 
 }
 
+//This function is not being used
 int getPortNumber(char** portNumber){
   int result; 
     if(portNumber[1]){
@@ -210,8 +212,6 @@ char* getHeader(char* hostName, char* resource){
     timeStuff = "If-Modified-Since: \r\n\r\n"; 
     timeArg = ifModifiedSince(); 
     timeArg[24] = '\0'; 
-    // timeArg = "Fri Apr  6 20:38:03 2018"; 
-      // printf("Time arg is : %s\n\n", timeArg); 
   }
 
 
@@ -393,11 +393,9 @@ int main(int argc, char *argv[]){
   strcpy(copy, resource); 
 
 
-
-
-  printf("Host : %s\n", host); 
-  printf("Port : %d\n", port); 
-  printf("Resource : %s\n\n", copy); 
+  // printf("Host : %s\n", host); 
+  // printf("Port : %d\n", port); 
+  // printf("Resource : %s\n\n", copy); 
   
 
 
