@@ -1,6 +1,9 @@
-
-
-HTTP/1.1 404 Not Found
+HTTP/1.1 304 Not Modified
+Date: Mon, 09 Apr 2018 13:44:12 GMT
+ETag: "fe6c-567cef252f480;50c0ca7afa400"
+Expires: Tue, 09 Apr 2019 13:44:12 GMT
+Cache-Control: max-age=31536000
+Vary: upgrade-insecure-requests
 
 
 
