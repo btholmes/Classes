@@ -187,7 +187,7 @@ int getMonthAsNum(char* month){
     return result; 
 }
 
-//Takes the timeArg from the http request's If-Modified_Since parameter, and decomposes it into a time_t
+//Takes the char* timeArg from the http request's If-Modified_Since parameter, and decomposes it into a time_t
 //so that it can be compared to another time_t. 
 time_t makeTime(char* tArg){
     // Sun Apr 8 04:05:56 2018
@@ -240,6 +240,7 @@ void getTFlag(char** tokens, int* tFlag, char* tArg, time_t* modifiedSince){
     int position = 0; 
     while(tokens[position]){
         char* item = tokens[position]; 
+        //Check if token contains the time argument parameter
         if(!strcmp(item, "If-Modified-Since:")){
             *tFlag = 1; 
             position++; 
@@ -247,6 +248,8 @@ void getTFlag(char** tokens, int* tFlag, char* tArg, time_t* modifiedSince){
                 fprintf(stderr,"TimeArg, Required time arg not provided\n");
                 exit(1);
             }else{
+                //Parse the time argument, it will be 5 space separated tokents
+                //Day Month date dayNum:hour:second Year
                 strcpy(tArg, tokens[position]); 
                 int argPosition = position+1; 
                 while(argPosition < (position+5)){
@@ -254,6 +257,7 @@ void getTFlag(char** tokens, int* tFlag, char* tArg, time_t* modifiedSince){
                     strcat(tArg, tokens[argPosition]); 
                     argPosition++; 
                 }
+                //Turn the given tArg into a time_t
                 *modifiedSince = makeTime(tArg); 
             }
             break; 
@@ -264,6 +268,8 @@ void getTFlag(char** tokens, int* tFlag, char* tArg, time_t* modifiedSince){
 }
 
 //This is the main function which constructs the response to be sent to the client. 
+//Looks for header and date flags, parses the arguments, and constructs the response 
+//in the form of \r\n\r\n Status \r\n\r\n then body (If applicable)
 char* getResponse(int *newsockfd, int* header, char* buffer, char* response){
     memset(response, 0, 10000); 
     char* status; 
@@ -285,24 +291,27 @@ char* getResponse(int *newsockfd, int* header, char* buffer, char* response){
 
     free(tokens); 
 
+    //Checks if the file exists, and if we have read permissions on it. 
     if( access( file, R_OK ) != -1 ) {
 
         if(tFlag && !hFlag){
+            //Get time file was last modified as a time_t 
             time_t createdOn =  getFileCreationTime(file);
-            // printf("Last modified time: %s \n", ctime(&createdOn));
-            //  printf("Param time: %s \n\n", ctime(&modifiedSince));
+            //compare the time provided from the If-Modified-Since parameter
+            //in the http request, and the time the given file was last modified
             if(modifiedSince <= createdOn){
+                //header
                 status = "\r\n\r\nHTTP/1.1 200 OK\r\n\r\n"; 
                 strcat(response, status); 
-                // printf("Modified on %s \n, Last modified param %s\n", ctime(&createdOn), ctime(&modifiedSince)); 
+                //body
                 char* body = getFile(file);
                 strcat(response, body); 
                 strcat(response, "\r\n\r\n"); 
 
-                // printf("Response in getResponse %s\n", response); 
                 free(body); 
                 return response; 
             }else{
+                //Just header, file was not modified since given range
                 status = "\r\n\r\nHTTP/1.1 304 Not Modified\r\n\r\n"; 
                 strcat(response, status); 
                 return response; 
@@ -310,6 +319,7 @@ char* getResponse(int *newsockfd, int* header, char* buffer, char* response){
             }
 
         }else if(!tFlag && hFlag){
+            //Just header flag was supplied
             status = "\r\n\r\nHTTP/1.1 200 OK\r\n\r\n";
             strcat(response, status); 
             
@@ -318,12 +328,14 @@ char* getResponse(int *newsockfd, int* header, char* buffer, char* response){
         }else if(tFlag && hFlag){
             time_t createdOn =  getFileCreationTime(file);
             if(modifiedSince <= createdOn){
+                //File exists, and it was modified in given range, return the header
                 status = "\r\n\r\nHTTP/1.1 200 OK\r\n\r\n"; 
                 strcat(response, status); 
 
                 return response; 
 
             }else{
+                //File exists, but was not modified in given range, return the header
                 status = "\r\n\r\nHTTP/1.1 304 Not Modified\r\n\r\n"; 
                 strcat(response, status); 
 
@@ -331,6 +343,7 @@ char* getResponse(int *newsockfd, int* header, char* buffer, char* response){
             }
 
         }else{
+            //Construct a normal response without any conditionals
             status = "\r\n\r\nHTTP/1.1 200 OK\r\n\r\n";
             strcat(response, status); 
 
@@ -344,6 +357,7 @@ char* getResponse(int *newsockfd, int* header, char* buffer, char* response){
 
 
     } else {
+        //File was not found, return header with empty body
         status = "\r\n\r\nHTTP/1.1 404 Not Found\r\n\r\n";  
         strcat(response, status); 
         return response; 
@@ -354,6 +368,9 @@ char* getResponse(int *newsockfd, int* header, char* buffer, char* response){
 }
 
 
+//Continuous while loop which waits for clients to try and connect, 
+//When a request is made, it is printed to the terminal before being sent
+//back to the client. 
 int main(int argc, char *argv[])
 {
     int sockfd, newsockfd, portno, clilen;
@@ -381,6 +398,7 @@ int main(int argc, char *argv[])
         if (newsockfd < 0) 
              error("ERROR on accept");
 
+        //Create a new thread
         pid_t pid = fork(); 
         if(pid == 0){
             bzero(buffer,256);
@@ -391,8 +409,9 @@ int main(int argc, char *argv[])
 
 
             char response[10000]; 
+            //Retrieve the respone from given http header sent from client
             getResponse(&newsockfd, &header, buffer, response);  
-
+            //write the response to the client
             int writeMe = write(newsockfd, response, strlen(response)); 
 
             if(writeMe < 0) error("ERROR writing response to client"); 

@@ -25,6 +25,7 @@ int tFlag = 0;
 char* tArg; 
 
 
+//This function splits the input line into its arguments. Splits by spaces
 char** splitLine(char *line, int *count, char splitBy){
 
    char delimiter[6] = {' ','\t','\r','\n','\a','\0'}; 
@@ -113,6 +114,9 @@ char* getResource(char** domainPortResource){
     return result; 
 }
 
+//Checks all arguments returned after the original input line is split by spaces, 
+//if an -h flag is encountered, it returns 1, and that sets a global variable called 
+//hFlag to 1. 
 int getHFlag(char** args, int argc){
   int result = 0; 
 
@@ -135,6 +139,8 @@ int getHFlag(char** args, int argc){
   return result; 
 }
 
+//Check all the arguments in the input line for a -d flag, it one is found, a global variable called
+//tFlag is set to 1, and then a char* containing the date argument in the form dd:hh:mm is returned.
 char* getTArg(char** args, int* tFlag, int argc){
   char* result; 
   if(args[2]){
@@ -168,6 +174,9 @@ int getPortNumber(char** portNumber){
     return result; 
 }
 
+//Constructs the If-Modified_Since parameter for the HTTP request from the given input. 
+//Takes an input of form dd:hh:mm and transforms it into a form such as: 
+// Sun Apr  8 00:00:00 2018
 char* ifModifiedSince(){
     int count = 0; 
     char** args = splitLine(tArg, &count, ':'); 
@@ -184,6 +193,10 @@ char* ifModifiedSince(){
   return s_time; 
 }
 
+// Constructs the header request to be sent to the server depending on the host, port, resource, and 
+// flags specified in the original arguments. Returns a char* containing the entire http request. Which
+//may look like: 
+//char* header = "GET /TR/html4/index/list.html HTTP/1.1\r\nHost: www.w3.org\r\nIf-Modified-Since: Sun, April 08 2018 16:45:15 GMT\r\n\r\n"; 
 char* getHeader(char* hostName, char* resource){
 
     // printf("RESOURCE IN HEADER : %s\n\n", resource); 
@@ -237,6 +250,9 @@ char* getHeader(char* hostName, char* resource){
   return header; 
 }
 
+//Writes the server response to a file called response.txt. Does not append to file, but only 
+//overwrites the previous request with the new request. If you would like it to append, 
+//simply change the "w" to an "a". 
 void writeToFile(char buf[]){
   FILE *f = fopen("response.txt", "w");
   if (f == NULL)
@@ -248,6 +264,8 @@ void writeToFile(char buf[]){
   fprintf(f, "%s\n\n\n", buf);
 }
 
+//Connects to the given server provided in the input line, constructs the header given in the arguments, 
+// sends this to the server, gets a response, and then writes the response to a response.txt file. 
 void connectToServer(char* hostName, int port, struct sockaddr_in server_addr, int* sock, char* resource){
   // server.sin_addr.s_addr = inet_addr("127.0.0.1");
 
@@ -289,6 +307,7 @@ void connectToServer(char* hostName, int port, struct sockaddr_in server_addr, i
     // puts("Connected\n");
 }
 
+//Basic TCP socket creation. 
 void createSocket(int *sock){
 //Create socket
     *sock = socket(AF_INET , SOCK_STREAM , 0);
@@ -306,6 +325,9 @@ int startsWith(const char *a, const char *b)
     return 0;
 }
 
+// Parses the host from the url.. urlCopy will be in the form https://github.com/btholmes/resource.ext
+//Also checks for the existence of http:// or https://, this provides some error handling, so websites
+//can be supplied simply as github.com/btholes/resource.ext
 char* getHost(char* urlCopy, char** domainPortResource, int* position){
   char* host; 
    if(startsWith(urlCopy, "http://") || startsWith(urlCopy, "https://")){
@@ -321,6 +343,7 @@ char* getHost(char* urlCopy, char** domainPortResource, int* position){
   return host; 
 }
 
+//Takes a url input, and retrieves the last part, i.e. everything after the host. Then returns it. 
 char* getResourceFromURL(char* url, int position){
     int count = 0; 
     char** tokens = splitLine(url, &count, '/' ); 
@@ -363,14 +386,21 @@ int main(int argc, char *argv[]){
   struct sockaddr_in server;
   createSocket(&sock); 
 
+  //I had to create copies of the url inorder to prevend undefined behavior.. 
+  //I could have fixed this by using a char[] instaed of a char*, but it still works this way. 
   char* urlCopy = malloc(sizeof(char) * strlen(argv[1])+1); 
   strcpy(urlCopy, argv[1]); 
 
+  //This is the url specified in the arguments such as https://cs.iastate.edu/index.html
+  //It does not include the flags. 
   char** domainPortResource = splitLine(argv[1], &count, '/'); 
 
 
   int position = 0; 
+  //Retrieves the host from the url specified
   char* host = getHost(urlCopy, domainPortResource, &position); 
+  //Removes the port number if provided such as cs.iastate.ed:8888, 
+  //will change it to just cs.iastate.edu
   char** removePort = splitLine(host, &count, ':'); 
   host = removePort[0]; 
 
@@ -382,13 +412,15 @@ int main(int argc, char *argv[]){
   }
 
 
+  //Creates a copy of the host so I am not modifying the original copy and 
+  //causing undefined behavior. Again I could have prevented this by using 
+  //char[] instead of char*, but this works. 
   char* hostCopy = malloc(sizeof(char) * strlen(host) + 1); 
   strcpy(hostCopy, host); 
 
 
-  // char** portInfo = splitLine(hostCopy, &count, ':'); 
-  // int port = getPortNumber(portInfo); 
-
+  //Gets the resource from the url. i.e. everything after the host. 
+  //So cs.iastate.edu/index.html becomes index.html
   char* resource = getResourceFromURL(urlCopy, position); 
   char copy[1000]; 
   memset(copy, 0, 1000); 
@@ -402,6 +434,7 @@ int main(int argc, char *argv[]){
 
   connectToServer(host, port, server, &sock, copy); 
 
+  //free up all resources that were mallocated. 
   free(urlCopy); 
   free(domainPortResource); 
   free(host); 
