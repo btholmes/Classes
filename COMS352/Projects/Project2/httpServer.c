@@ -9,6 +9,10 @@
 #include <time.h>
 #include <sys/stat.h>
 
+#define MAX_LINE 255
+
+// Returns the last time specified file was modified in format such as
+// Sun Apr 8 04:05:56 2018
 time_t getFileCreationTime(char *path) {
     struct stat attr;
     if(stat(path, &attr)==0){
@@ -17,14 +21,14 @@ time_t getFileCreationTime(char *path) {
     return 0; 
 }
 
+//prints an error message than exits, used if input isn't formatted correctly
 void error(char *msg)
 {
     perror(msg);
     exit(1);
 }
 
-#define MAX_LINE 255
-
+//Mainly used to split the http request by spaces, and then filter through the tokens
 char** splitLine(char *line, int *count, char splitBy){
 
    char delimiter[6] = {' ','\t','\r','\n','\a','\0'}; 
@@ -60,7 +64,7 @@ char** splitLine(char *line, int *count, char splitBy){
 
 }
 
-
+//Reads the specified file into a char* called source, then returns it
 char* getFile(char* file){
     char *source = NULL;
     FILE *fp = fopen(file, "r");
@@ -87,7 +91,7 @@ char* getFile(char* file){
     return source; 
 }
 
-
+// Basic server setup
 void setUpServer(int sockfd, int portno, struct sockaddr_in* serv_addr){
 
     serv_addr->sin_family = AF_INET;
@@ -98,6 +102,7 @@ void setUpServer(int sockfd, int portno, struct sockaddr_in* serv_addr){
          error("ERROR on binding");
 }
 
+//Creates the basic socket
 void createSocket(int* sockfd){
     *sockfd = socket(AF_INET, SOCK_STREAM, 0);
     if (*sockfd < 0) 
@@ -123,6 +128,8 @@ char* getStatus(char* file){
     return result; 
 }
 
+//splits the resource identifier from the http request by the '/' char, then reassembles it into a fileName which
+//can be passed to getFile(char* fileName) in order to retrieve the contents. 
 void getDirectory(char* splitDirectories, char* result){
     memset(result, 0, 1000);
 
@@ -146,6 +153,8 @@ void getDirectory(char* splitDirectories, char* result){
 
 }
 
+//Determines if the httpRequest includes the HEAD parameter, if it does, 
+// it marks the hFlag signfiying that it was found. 
 void getHFlag(char** tokens, int* hFlag){
 
     if(!strcmp(tokens[0], "HEAD")){
@@ -156,6 +165,9 @@ void getHFlag(char** tokens, int* hFlag){
 
 }
 
+//Used for getting the corresponding numerical value of a given month. 
+//Useful when constructing the time_t structure from a char * date such as
+// Sun Apr 8 04:05:56 2018
 int getMonthAsNum(char* month){
     int result = 0; 
 
@@ -175,6 +187,8 @@ int getMonthAsNum(char* month){
     return result; 
 }
 
+//Takes the timeArg from the http request's If-Modified_Since parameter, and decomposes it into a time_t
+//so that it can be compared to another time_t. 
 time_t makeTime(char* tArg){
     // Sun Apr 8 04:05:56 2018
     char day[4]; 
@@ -213,6 +227,9 @@ time_t makeTime(char* tArg){
 
 }
 
+// Checks for the If-Modified_Since parameter in the http request, marks a flag to simbolize 
+// it was found, then constructs the tArg from that parameter, and passes it to makeTime(char* tArg)
+// in order to convert the char* into a time_t
 void getTFlag(char** tokens, int* tFlag, char* tArg, time_t* modifiedSince){
 // HEAD /var/www/html/index.html HTTP/1.1
 // Host: localhost
@@ -246,6 +263,7 @@ void getTFlag(char** tokens, int* tFlag, char* tArg, time_t* modifiedSince){
 
 }
 
+//This is the main function which constructs the response to be sent to the client. 
 char* getResponse(int *newsockfd, int* header, char* buffer, char* response){
     memset(response, 0, 10000); 
     char* status; 

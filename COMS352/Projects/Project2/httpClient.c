@@ -400,7 +400,6 @@ int main(int argc, char *argv[]){
   // printf("Resource : %s\n\n", copy); 
   
 
-
   connectToServer(host, port, server, &sock, copy); 
 
   free(urlCopy); 
@@ -410,72 +409,6 @@ int main(int argc, char *argv[]){
   free(resource); 
 
   printf("\n\n"); 
-
-
-  // while(1){
-  //   int argc = 0; 
-  //   char* line; 
-  //   char **args;
-  //   int count = 0; 
-
-  //   // int hFlag = 0; 
-  //   // int tFlag = 0; 
-  //   // char* tArg; 
-
-  //   char** domainPortResource; 
-  //   char** domainPortResourceCopy; 
-
-  //   char** portInfo; 
-
-  //   fflush(stdout); 
-
-  //   line = getLine(); 
-
-  //   args = splitLine(line, &count, ' '); 
-
-  //   hFlag = getHFlag(args, argc); 
-  //   tArg =  getTArg(args, &tFlag, argc); 
-
-  //   char* urlCopy = malloc(sizeof(char) * strlen(args[0])+1); 
-  //   strcpy(urlCopy, args[0]); 
-
-  //   // printf("%s\n\n", urlCopy); 
-  //   // domainPortResourceCopy = splitLine(args0Copy, &count, '/'); 
-
-  //   domainPortResource = splitLine(args[0], &count, '/'); 
-    
-  //   char* host; 
-  //   // if(startsWith(args0Copy, "http://") || startsWith(args0Copy, "https://")){
-  //   //   host = malloc(sizeof(char) * strlen(domainPortResource[1] + 1)); 
-  //   //   strcpy(host, domainPortResource[1]); 
-  //   // }else{
-  //     host = malloc(sizeof(char) * strlen(domainPortResource[0] + 1)); 
-  //     strcpy(host, domainPortResource[1]); 
-  //   // }
-   
-  //   char* hostCopy = malloc(sizeof(char) * strlen(host) + 1); 
-  //   strcpy(hostCopy, host); 
-
-  //   portInfo = splitLine(hostCopy, &count, ':'); 
-  //   int port = getPortNumber(portInfo); 
- 
-
-  //   char* resource = getResourceFromURL(urlCopy); 
-  //   char copy[1000]; 
-  //   strcpy(copy, resource); 
-  //   connectToServer(host, port, server, &sock, copy); 
-
-
-  //   free(line);
-  //   free(args);
-  //   free(urlCopy); 
-  //   free(domainPortResource); 
-  //   free(host); 
-  //   free(hostCopy); 
-  //   free(portInfo); 
-  //   free(resource); 
-  
-  // } 
 
 
   return 0;
