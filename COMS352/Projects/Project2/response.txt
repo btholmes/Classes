@@ -1,7 +1,8 @@
-exa.html
-
-HTTP/1.1 404 Not Found
 
 
+HTTP/1.1 200 OK
+
+<h1>I am an index page</h1>
+<p>I was modified at 3:27am</
 
 

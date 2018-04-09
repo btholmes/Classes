@@ -11,10 +11,12 @@
 #include <time.h>
 #include <sys/stat.h>
 
-void getFileCreationTime(char *path) {
+time_t getFileCreationTime(char *path) {
     struct stat attr;
-    stat(path, &attr);
-    printf("Last modified time: %s \n\n", ctime(&attr.st_mtime));
+    if(stat(path, &attr)==0){
+        return attr.st_mtime;
+    }
+    return 0; 
 }
 
 void error(char *msg)
@@ -119,56 +121,238 @@ char* getStatus(char* file){
     return result; 
 }
 
-char* getDirectory(char* splitDirectories){
+void getDirectory(char* splitDirectories, char* result){
+    memset(result, 0, 1000);
+
+
     int count = 0; 
     char** tokens = splitLine(splitDirectories, &count, '/'); 
-    char* result; 
     int position = 0; 
-    if(tokens[position]) result = malloc(sizeof(char)*strlen(tokens[position])); 
+    int length = 0; 
+
     while(tokens[position]){
+        length += strlen(tokens[position]); 
         strcat(result, tokens[position]); 
         position++; 
         if(tokens[position]){
-            result = realloc(result, sizeof(char) * strlen(tokens[position]) + 1); 
             strcat(result, "/"); 
+            length+=1; 
         } 
     }
-    result[strlen(result)] = '\0'; 
+    result[length] = '\0'; 
+    free(tokens); 
+
+    // printf("File in getDirectory is : %s\n\n", result); 
+}
+
+void getHFlag(char** tokens, int* hFlag){
+
+    if(!strcmp(tokens[0], "HEAD")){
+        *hFlag = 1; 
+    }else{
+        *hFlag = 0; 
+    }
+
+}
+
+int getMonthAsNum(char* month){
+    int result = 0; 
+
+    if(!strcmp(month, "Jan")) result = 0; 
+    else if(!strcmp(month, "Feb")) result = 1; 
+    else if(!strcmp(month, "Mar")) result = 2; 
+    else if(!strcmp(month, "Apr")) result = 3; 
+    else if(!strcmp(month, "May")) result = 4; 
+    else if(!strcmp(month, "Jun")) result = 5; 
+    else if(!strcmp(month, "Jul")) result = 6; 
+    else if(!strcmp(month, "Aug")) result = 7; 
+    else if(!strcmp(month, "Sep")) result = 8; 
+    else if(!strcmp(month, "Oct")) result = 9; 
+    else if(!strcmp(month, "Nov")) result = 10; 
+    else if(!strcmp(month, "Dec")) result = 11; 
 
     return result; 
 }
 
+time_t makeTime(char* tArg){
+    // Sun Apr 8 04:05:56 2018
+    char day[4]; 
+    char month[4]; 
+    int dayNum, hour, min, sec, year; 
+
+    time_t result = 0; 
+
+    if (sscanf(tArg, "%s %s %2d %2d:%2d:%2d %4d", day, month, &dayNum, &hour, &min, &sec, &year) == 7) {
+        month[3] = '\0'; 
+        day[3] = '\0'; 
+
+        int monthAsNum = getMonthAsNum(month); 
+
+        struct tm breakdown = {0};
+        breakdown.tm_year = year - 1900; /* years since 1900 */
+        breakdown.tm_mon = monthAsNum;
+        breakdown.tm_mday = dayNum;
+        breakdown.tm_hour = hour-1;
+        breakdown.tm_min = min;
+        breakdown.tm_sec = sec; 
+     
+        if ((result = mktime(&breakdown)) == (time_t)-1) {
+           fprintf(stderr, "Could not convert time input to time_t\n");
+           return EXIT_FAILURE;
+        }
+    
+
+    }else{
+        fprintf(stderr, "Failed to parse date modified string supplied \n\n"); 
+        exit(1); 
+
+    }
+
+    return result; 
+
+}
+
+void getTFlag(char** tokens, int* tFlag, char* tArg, time_t* modifiedSince){
+//     HEAD /var/www/html/index.html HTTP/1.1
+// Host: localhost
+// If-Modified-Since: Sun Apr  8 04:35:24 2018
+
+    memset(tArg, 0, 1000); 
+
+    int position = 0; 
+    while(tokens[position]){
+        char* item = tokens[position]; 
+        if(!strcmp(item, "If-Modified-Since:")){
+            *tFlag = 1; 
+            position++; 
+            if(!tokens[position]){
+                fprintf(stderr,"TimeArg, Required time arg not provided\n");
+                exit(1);
+            }else{
+                strcpy(tArg, tokens[position]); 
+                int argPosition = position+1; 
+                while(argPosition < (position+5)){
+                    strcat(tArg, " "); 
+                    strcat(tArg, tokens[argPosition]); 
+                    argPosition++; 
+                }
+                *modifiedSince = makeTime(tArg); 
+            }
+            break; 
+        }
+        position++; 
+    }
+
+}
+
 char* getResponse(int *newsockfd, int* header, char* buffer){
+    char* response; 
+    char* status; 
 
     int count = 0; 
     char** tokens = splitLine(buffer, &count, ' '); 
-    char* file = getDirectory(tokens[1]); 
 
-    getFileCreationTime(file); 
+    char file[1000]; 
+    getDirectory(tokens[1], file); 
+    // char* file = "var/www/html/index.html"; 
 
-    printf("FILE IS %s \n\n\n", file); 
+    int hFlag = 0; 
+    getHFlag(tokens, &hFlag); 
+
+    int tFlag = 0; 
+    char tArg[1000]; 
+    time_t modifiedSince; 
+    getTFlag(tokens, &tFlag, tArg, &modifiedSince); 
+    // printf("\nmodifiedSince at end is : %s \n\n", ctime(&modifiedSince)); 
+
+
+    free(tokens); 
+
+    // printf("FILE IS %s \n\n\n", file); 
 
     if( access( file, R_OK ) != -1 ) {
-        char* status = getStatus(file); 
-        char* response = malloc(sizeof(char*) * strlen(status));
-        strcat(response, status); 
 
-        char* body = getFile(file);
-        response = realloc(response, sizeof(char)*strlen(body)+5); 
-        strcat(response, body); 
+        if(tFlag && !hFlag){
+            time_t createdOn =  getFileCreationTime(file);
+            // printf("Last modified time: %s \n", ctime(&createdOn));
+            //  printf("Param time: %s \n\n", ctime(&modifiedSince));
+            if(modifiedSince <= createdOn){
+                status = "\r\n\r\nHTTP/1.1 200 OK\r\n\r\n"; 
+                response = malloc(sizeof(char*) * strlen(status));
+                strcat(response, status); 
+                // printf("Modified on %s \n, Last modified param %s\n", ctime(&createdOn), ctime(&modifiedSince)); 
+                char* body = getFile(file);
+                response = realloc(response, sizeof(char)*strlen(body)+5); 
+                strcat(response, body); 
 
-        strcat(response, "\r\n\r\n"); 
-        response[strlen(response)] = '\0'; 
+                strcat(response, "\r\n\r\n\0"); 
+                // response[strlen(response)] = '\0'; 
 
-        return response; 
+                free(body); 
+                return response; 
+            }else{
+                status = "\r\n\r\nHTTP/1.1 304 Not Modified\r\n\r\n"; 
+                response = malloc(sizeof(char*) * strlen(status));
+                strcat(response, status); 
+
+                return response; 
+
+            }
+
+        }else if(!tFlag && hFlag){
+            status = "\r\n\r\nHTTP/1.1 200 OK\r\n\r\n";
+            response = malloc(sizeof(char*) * strlen(status));
+            strcat(response, status); 
+            
+            return response; 
+
+        }else if(tFlag && hFlag){
+            time_t createdOn =  getFileCreationTime(file);
+            // printf("Last modified time: %s \n", ctime(&createdOn));
+            // printf("Param time: %s \n\n", ctime(&modifiedSince));
+            if(modifiedSince <= createdOn){
+                status = "\r\n\r\nHTTP/1.1 200 OK\r\n\r\n"; 
+                response = malloc(sizeof(char*) * strlen(status));
+                strcat(response, status); 
+
+                return response; 
+
+            }else{
+                status = "\r\n\r\nHTTP/1.1 304 Not Modified\r\n\r\n"; 
+                response = malloc(sizeof(char*) * strlen(status));
+                strcat(response, status); 
+
+                return response; 
+            }
+
+        }else{
+            status = "\r\n\r\nHTTP/1.1 200 OK\r\n\r\n";
+            response = malloc(sizeof(char*) * strlen(status));
+            strcat(response, status); 
+
+            char* body = getFile(file);
+            response = realloc(response, sizeof(char)*strlen(body)+5); 
+            strcat(response, body); 
+
+            strcat(response, "\r\n\r\n\0"); 
+            // response[strlen(response)] = '\0'; 
+
+            free(body); 
+            
+            return response; 
+        }
+
 
     } else {
-        char* status = getStatus(file); 
-        char* response = malloc(sizeof(char*) * strlen(status));
+        status = "\r\n\r\nHTTP/1.1 404 Not Found\r\n\r\n";  
+        response = malloc(sizeof(char*) * strlen(status));
         strcat(response, status); 
-
+        // strcat(response, "\r\n\r\n\0"); 
         return response; 
     }
+
+
+    return "Somehow this was returned"; 
 }
 
 
@@ -205,7 +389,7 @@ int main(int argc, char *argv[])
             header = read(newsockfd,buffer,255);
             if (header < 0) error("ERROR reading from socket");
 
-            printf("Request is : %s\r\n\r\n",buffer);
+            printf("\n\nRequest is : \n%s\r\n\r\n",buffer);
 
 
             char* response = getResponse(&newsockfd, &header, buffer); 

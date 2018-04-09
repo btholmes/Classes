@@ -238,7 +238,7 @@ char* getHeader(char* hostName, char* resource){
 
   // printf("\n\n"); 
   // printf("Header is %s\n", header);   
-
+  if(tFlag) free(timeArg); 
   return header; 
 }
 
@@ -284,7 +284,7 @@ void connectToServer(char* hostName, int port, struct sockaddr_in server_addr, i
 
     writeToFile(buf); 
 
-    // free(header); 
+    free(header); 
     // puts("Connected\n");
 }
 
@@ -395,15 +395,21 @@ int main(int argc, char *argv[]){
 
 
 
-  // printf("Host : %s\n", host); 
-  // printf("Port : %d\n", port); 
-  // printf("Resource : %s\n\n", copy); 
+  printf("Host : %s\n", host); 
+  printf("Port : %d\n", port); 
+  printf("Resource : %s\n\n", copy); 
   
 
 
   connectToServer(host, port, server, &sock, copy); 
 
-  // printf("\n\n"); 
+  free(urlCopy); 
+  free(domainPortResource); 
+  free(host); 
+  free(hostCopy); 
+  free(resource); 
+
+  printf("\n\n"); 
 
 
   // while(1){
