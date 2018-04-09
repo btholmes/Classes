@@ -1,21 +1,6 @@
+exa.html
+
 HTTP/1.1 404 Not Found
-Date: Mon, 26 Mar 2018 17:38:04 GMT
-Server: Apache/2.4.6 (Red Hat Enterprise Linux) OpenSSL/1.0.2k-fips PHP/5.4.16
-X-Content-Type-Options: nosniff
-X-Powered-By: PHP/5.4.16
-X-Drupal-Cache: MISS
-Expires: Sun, 19 Nov 1978 05:00:00 GMT
-Cache-Control: public, max-age=0
-X-Content-Type-Options: nosniff
-Content-Language: en
-X-Frame-Options: SAMEORIGIN
-X-UA-Compatible: IE=edge
-X-Generator: Drupal 7 (http://drupal.org)
-Link: <http://www.cs.iastate.edu/>; rel="canonical",<http://www.cs.iastate.edu/>; rel="shortlink"
-Etag: "1522085884-0"
-Last-Modified: Mon, 26 Mar 2018 17:38:04 GMT
-Vary: Cookie,Accept-Encoding
-Content-Type: text/html; charset=utf-8
 
 
 

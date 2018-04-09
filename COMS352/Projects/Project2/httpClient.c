@@ -184,12 +184,15 @@ char* ifModifiedSince(){
     n_time=n_time-(day*24*3600+hour*3600+min*60);
     strcpy(s_time, ctime(&n_time)); 
 
-    printf("Time is %s\n", s_time); 
   return s_time; 
 }
 
 char* getHeader(char* hostName, char* resource){
+
+    // printf("RESOURCE IN HEADER : %s\n\n", resource); 
+
   char* type; 
+  char modifiedSince[1000]; 
 
   if(hFlag){
     type = "HEAD /"; 
@@ -206,7 +209,11 @@ char* getHeader(char* hostName, char* resource){
   if(tFlag){
     timeStuff = "If-Modified-Since: \r\n\r\n"; 
     timeArg = ifModifiedSince(); 
+    timeArg[24] = '\0'; 
+    // timeArg = "Fri Apr  6 20:38:03 2018"; 
+      // printf("Time arg is : %s\n\n", timeArg); 
   }
+
 
   char *header = malloc(sizeof(char) * strlen(type) + sizeof(char)*strlen(protocol)+sizeof(char)*strlen(host)+
       sizeof(char)*strlen(end)+sizeof(char)*strlen(hostName)+sizeof(char)*strlen(resource) 
@@ -221,7 +228,12 @@ char* getHeader(char* hostName, char* resource){
   }else{
     sprintf(header, "GET /%s HTTP/1.1\r\nHost: %s\r\n\r\n", resource, hostName);
   }
-  // char* header = "GET /index.html HTTP/1.1\r\nHost: www.cs.iastate.edu\r\nIf-Modified-Since: Mon, Mar 27 2018 16:45:15 GMT\r\n\r\n"; 
+
+
+// Fri Apr  6 20:34:20 2018
+  // char* header = "GET /TR/html4/index/list.html HTTP/1.1\r\nHost: www.w3.org\r\nIf-Modified-Since: Fri Apr  6 20:34:20 2018\r\n\r\n"; 
+
+  // char* header = "GET /TR/html4/index/list.html HTTP/1.1\r\nHost: www.w3.org\r\nIf-Modified-Since: Sun, April 08 2018 16:45:15 GMT\r\n\r\n"; 
   // char* header = "GET /index.html HTTP/1.1\r\nHost: www.cs.iastate.edu\r\nIf-Modified-Since: Sun Mar 25 10:16:20 2018\r\n\r\n"; 
 
   // printf("\n\n"); 
@@ -260,6 +272,8 @@ void connectToServer(char* hostName, int port, struct sockaddr_in server_addr, i
         return; 
     }
 
+    // printf("RESOURCE IN SERVER IS : %s\n\n", resource); 
+
     char *header = getHeader(hostName, resource); 
     // printf("Header is %s\n" , header); 
     send(*sock,header,strlen(header),0);
@@ -291,17 +305,46 @@ int startsWith(const char *a, const char *b)
     return 0;
 }
 
-char* getHost(char* urlCopy, char** domainPortResource){
+char* getHost(char* urlCopy, char** domainPortResource, int* position){
   char* host; 
    if(startsWith(urlCopy, "http://") || startsWith(urlCopy, "https://")){
     host = malloc(sizeof(char) * strlen(domainPortResource[1] + 1)); 
     strcpy(host, domainPortResource[1]); 
+    *position = 2; 
   }else{
     host = malloc(sizeof(char) * strlen(domainPortResource[0] + 1)); 
     strcpy(host, domainPortResource[0]); 
+    *position = 1; 
   }
 
   return host; 
+}
+
+char* getResourceFromURL(char* url, int position){
+    int count = 0; 
+    char** tokens = splitLine(url, &count, '/' ); 
+
+    char* result; 
+    if(tokens[position]){
+        char* resource = tokens[position]; 
+      result = malloc(sizeof(char)*strlen(resource) + 1); 
+      strcpy(result, resource); 
+      position++; 
+        while(tokens[position]){
+          result = realloc(result, sizeof(char)); 
+          strcat(result, "/"); 
+          resource = tokens[position]; 
+          result = (char*)realloc(result, sizeof(char)*strlen(resource)); 
+          strcat(result, resource); 
+          position++; 
+        }
+      result = realloc(result, sizeof(char) + 1); 
+      result[strlen(result)] = '\0'; 
+    }else{
+      fprintf(stderr, "Most specify resource identifier with the url i.e. localhost/index.html \n\n"); 
+      exit(0); 
+    }
+    return result; 
 }
 
 int main(int argc, char *argv[]){
@@ -313,7 +356,6 @@ int main(int argc, char *argv[]){
   hFlag = getHFlag(argv, argc); 
   tArg =  getTArg(argv, &tFlag, argc); 
 
-  // printf("H flag %d , Tflag %d \n", hFlag, tFlag); 
 
   int sock;
   int count; 
@@ -325,27 +367,54 @@ int main(int argc, char *argv[]){
 
   char** domainPortResource = splitLine(argv[1], &count, '/'); 
 
-  char* host = getHost(urlCopy, domainPortResource); 
+
+  int position = 0; 
+  char* host = getHost(urlCopy, domainPortResource, &position); 
+  char** removePort = splitLine(host, &count, ':'); 
+  host = removePort[0]; 
+
+  int port; 
+  if(removePort[1]){
+      port = atoi(removePort[1]); 
+  }else{
+    port = 80; 
+  }
 
 
   char* hostCopy = malloc(sizeof(char) * strlen(host) + 1); 
   strcpy(hostCopy, host); 
 
-  char** portInfo = splitLine(hostCopy, &count, ':'); 
-  int port = getPortNumber(portInfo); 
 
-  char* resource = "index.shtml"; 
-  connectToServer(host, port, server, &sock, resource); 
+  // char** portInfo = splitLine(hostCopy, &count, ':'); 
+  // int port = getPortNumber(portInfo); 
+
+  char* resource = getResourceFromURL(urlCopy, position); 
+  char copy[1000]; 
+  strcpy(copy, resource); 
+
+
+
+
+  // printf("Host : %s\n", host); 
+  // printf("Port : %d\n", port); 
+  // printf("Resource : %s\n\n", copy); 
+  
+
+
+  connectToServer(host, port, server, &sock, copy); 
+
+  // printf("\n\n"); 
 
 
   // while(1){
+  //   int argc = 0; 
   //   char* line; 
   //   char **args;
   //   int count = 0; 
 
-    // int hFlag = 0; 
-    // int tFlag = 0; 
-    // char* tArg; 
+  //   // int hFlag = 0; 
+  //   // int tFlag = 0; 
+  //   // char* tArg; 
 
   //   char** domainPortResource; 
   //   char** domainPortResourceCopy; 
@@ -358,11 +427,13 @@ int main(int argc, char *argv[]){
 
   //   args = splitLine(line, &count, ' '); 
 
-    // hFlag = getHFlag(args); 
-    // tArg =  getTArg(args, &tFlag); 
+  //   hFlag = getHFlag(args, argc); 
+  //   tArg =  getTArg(args, &tFlag, argc); 
 
-  //   char* args0Copy = malloc(sizeof(char) * strlen(args[0])+1); 
-  //   strcpy(args0Copy, args[0]); 
+  //   char* urlCopy = malloc(sizeof(char) * strlen(args[0])+1); 
+  //   strcpy(urlCopy, args[0]); 
+
+  //   // printf("%s\n\n", urlCopy); 
   //   // domainPortResourceCopy = splitLine(args0Copy, &count, '/'); 
 
   //   domainPortResource = splitLine(args[0], &count, '/'); 
@@ -383,27 +454,20 @@ int main(int argc, char *argv[]){
   //   int port = getPortNumber(portInfo); 
  
 
-  //   // char* resource = getResource(domainPortResourceCopy); 
-  //   char* resource = "index.html"; 
-  //   connectToServer(host, port, server, &sock, resource); 
-
-
-  //   printf("%s\n", host); 
-  //   printf("%d\n", port); 
-  //   // printf("%s\n", resource); 
+  //   char* resource = getResourceFromURL(urlCopy); 
+  //   char copy[1000]; 
+  //   strcpy(copy, resource); 
+  //   connectToServer(host, port, server, &sock, copy); 
 
 
   //   free(line);
   //   free(args);
-  //   free(args0Copy); 
-  //   // free(domainPortResourceCopy); 
+  //   free(urlCopy); 
   //   free(domainPortResource); 
   //   free(host); 
   //   free(hostCopy); 
   //   free(portInfo); 
-  //   // free(resource); 
- 
-    
+  //   free(resource); 
   
   // } 
 
