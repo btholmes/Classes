@@ -1,0 +1,14 @@
+The main.c file can be compiled with the following steps. 
+
+- Run the following command
+	$ make
+
+- Run the following command
+	$ ./main
+
+	After the above two steps are completed, and you see the "osh>" output, you may begin testing commands such as : 
+cd ../
+cd -
+history
+history !n    ( where 0<n<10)
+cat main.c
